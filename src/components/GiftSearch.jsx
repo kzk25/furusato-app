@@ -13,7 +13,7 @@ const CATEGORY_KEYWORDS = {
   'その他': '',
 };
 
-async function searchRakutenFurusato({ appId, keyword, categories, maxPrice }) {
+async function searchRakutenFurusato({ appId, accessKey, keyword, categories, maxPrice }) {
   let searchKw = 'ふるさと納税';
   if (keyword) searchKw += ' ' + keyword;
   if (categories.length > 0) {
@@ -23,19 +23,21 @@ async function searchRakutenFurusato({ appId, keyword, categories, maxPrice }) {
 
   const params = new URLSearchParams({
     applicationId: appId,
+    accessKey,
     keyword: searchKw,
     hits: 20,
     maxPrice: Math.min(maxPrice, 9999999),
     minPrice: 1000,
     sort: '-reviewCount',
+    formatVersion: 2,
   });
 
   const res = await fetch(
-    `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?${params}`
+    `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401?${params}`
   );
   if (!res.ok) throw new Error(`Rakuten API error: ${res.status}`);
   const data = await res.json();
-  return data.Items || [];
+  return data.Items || data.items || [];
 }
 
 export default function GiftSearch({ remainingBudget }) {
@@ -57,8 +59,9 @@ export default function GiftSearch({ remainingBudget }) {
 
   const doSearch = async (kw, cats, bgt) => {
     const appId = import.meta.env.VITE_RAKUTEN_APP_ID;
-    if (!appId) {
-      setError('楽天アプリIDが未設定です。.env に VITE_RAKUTEN_APP_ID を設定してください。\n取得先: https://webservice.rakuten.co.jp/');
+    const accessKey = import.meta.env.VITE_RAKUTEN_ACCESS_KEY;
+    if (!appId || !accessKey) {
+      setError('楽天APIの認証情報が未設定です。.env に VITE_RAKUTEN_APP_ID と VITE_RAKUTEN_ACCESS_KEY を設定してください。\n取得先: https://webservice.rakuten.co.jp/');
       setResults([]);
       setHasSearched(true);
       return;
@@ -66,7 +69,7 @@ export default function GiftSearch({ remainingBudget }) {
     setLoading(true);
     setError('');
     try {
-      const items = await searchRakutenFurusato({ appId, keyword: kw, categories: cats, maxPrice: bgt });
+      const items = await searchRakutenFurusato({ appId, accessKey, keyword: kw, categories: cats, maxPrice: bgt });
       setResults(items);
       setHasSearched(true);
     } catch (e) {
@@ -308,7 +311,7 @@ export default function GiftSearch({ remainingBudget }) {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {results.map((item, idx) => {
-                  const it = item.Item;
+                  const it = item.Item || item;
                   const imgUrl = it.mediumImageUrls?.[0]?.imageUrl || it.smallImageUrls?.[0]?.imageUrl;
                   return (
                     <a

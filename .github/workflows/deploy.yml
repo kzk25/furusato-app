@@ -20,6 +20,7 @@ jobs:
       - run: npm run build
         env:
           VITE_RAKUTEN_APP_ID: ${{ secrets.VITE_RAKUTEN_APP_ID }}
+          VITE_RAKUTEN_ACCESS_KEY: ${{ secrets.VITE_RAKUTEN_ACCESS_KEY }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
